@@ -8,10 +8,25 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "docx2pdf (>=0.1.8,<0.2.0)"
+    "docx2pdf (>=0.1.8,<0.2.0)",
+    "pypandoc[tinytex] (>=1.17,<2.0)",
+    "pytest (>=9.0.2,<10.0.0)",
+    "docx (>=0.2.4,<0.3.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.15.9,<0.16.0)"
+]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]
+
+[tool.ruff.lint]
+ignore = []
