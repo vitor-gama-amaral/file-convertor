@@ -30,3 +30,8 @@ select = ["E", "F", "I"]
 
 [tool.ruff.lint]
 ignore = []
+
+[tool.pytest.ini_options]
+addopts = "-p no:cacheprovider"
+testpaths = ["tests"]
+norecursedirs = [".pytest_cache", ".tmp", "tests/tmp*"]
