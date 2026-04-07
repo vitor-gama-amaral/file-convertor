@@ -26,10 +26,10 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "I"]
 
 [tool.ruff.lint]
 ignore = []
+select = ["E", "F", "I"]
 
 [tool.pytest.ini_options]
 addopts = "-p no:cacheprovider"
