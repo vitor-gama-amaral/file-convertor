@@ -13,5 +13,7 @@ dist/
 .pytest_cache/
 *.log
 
+.tmp
+
 # Interface e Sistema
 *.spec
