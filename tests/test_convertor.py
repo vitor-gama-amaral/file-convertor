@@ -50,7 +50,7 @@ def test_convert_rejects_invalid_extension():
     )
 
     assert response.status_code == 400
-    assert response.json == {"error": "Apenas arquivos .docx são permitidos."}
+    assert response.json == {"error": "Apenas arquivos .docx sao permitidos."}
 
 
 def test_convert_accepts_uppercase_docx_extension(monkeypatch):
