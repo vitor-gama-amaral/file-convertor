@@ -1,56 +1,55 @@
-# File Convertor (Conversor de Arquivos)
+# File Convertor
 
-## Descrição do projeto
+## Descricao do projeto
 
-O File Convertor é um sistema de conversão de arquivos criado para oferecer aos trabalhadores uma ferramenta própria de conversão de documentos, com foco em mais segurança e mais velocidade no processo. (A garantia que, por exemplo, o iLovePDF não pode garantir)
+O File Convertor e uma aplicacao web para conversao de arquivos focada em uso interno. Nesta versao, a funcionalidade principal permite transformar documentos Word (`.docx`) em arquivos PDF (`.pdf`) de forma local, com mais controle sobre os dados enviados e recebidos.
 
 ## Problema real
 
-Em muitos cenários de trabalho, funcionários precisam converter arquivos com rapidez, mas acabam dependendo de sites externos ou ferramentas de terceiros. Isso pode gerar riscos de segurança, exposição de dados sensíveis e perda de tempo no fluxo de trabalho.
+Em muitos ambientes de trabalho, equipes precisam converter documentos com rapidez, mas acabam recorrendo a sites externos. Isso pode gerar risco de exposicao de dados sensiveis, dependencia de terceiros e perda de tempo no fluxo operacional.
 
-## Proposta da solução
+## Proposta da solucao
 
-A proposta deste projeto é disponibilizar um conversor próprio para uso interno, permitindo transformar arquivos Word em PDF de maneira mais controlada, rápida e segura.
+O projeto oferece um conversor proprio para uso interno, reduzindo a necessidade de ferramentas online e centralizando a conversao de arquivos em uma aplicacao simples de manter e testar.
 
-## Público-alvo
+## Publico-alvo
 
-O público-alvo deste projeto são trabalhadores e equipes que precisam converter documentos no dia a dia com mais segurança, especialmente em ambientes onde os arquivos podem conter informações importantes ou sensíveis.
+Equipes e profissionais que precisam converter documentos com mais seguranca, especialmente quando os arquivos contem informacoes importantes ou sensiveis.
 
 ## Funcionalidades principais
 
-- Conversão de arquivos `.docx` para `.pdf`
-- Execução local, sem depender de plataformas online
-- Teste automatizado simples para validar a conversão
+- Conversao de arquivos `.docx` para `.pdf` (Mais operações nas próximas versões)
+- Interface web com upload e download imediato do arquivo convertido
+- Validacao do tipo de arquivo enviado
+- Execucao local, sem depender de plataformas online
+- Testes automatizados para o fluxo principal de conversao
 
 ## Tecnologias utilizadas
 
 - Python 3.14+
+- Flask
 - `pypandoc`
 - `docx2pdf`
 - `pytest`
 - `ruff`
 
-## Instalação
+## Instalacao
 
-### Opção 1: usando Poetry
+### Opcao 1: usando Poetry
 
 ```bash
 poetry install
 ```
 
-:::info
+Necessario ter o Poetry instalado: [python-poetry.org](https://python-poetry.org)
 
-Necessário instalação do Poetry: https://python-poetry.org
-
-:::
-
-### Opção 2: usando pip
+### Opcao 2: usando pip
 
 ```bash
-pip install pypandoc docx2pdf pytest docx ruff
+pip install flask pypandoc docx2pdf pytest docx ruff
 ```
 
-## Execução
+## Execucao
 
 Para executar o projeto:
 
@@ -58,23 +57,40 @@ Para executar o projeto:
 python src/main.py
 ```
 
+A aplicacao inicia um servidor Flask local com a funcionalidade de conversao Word para PDF.
+
 ## Como rodar os testes
 
-Execute o comando abaixo na raiz do projeto:
+Execute na raiz do projeto:
 
 ```bash
 python -m pytest -q
 ```
 
+Atualmente a suite cobre 3 cenarios da funcionalidade principal:
+
+- Cenário de sucesso: envio de um arquivo `.docx` valido e retorno do PDF
+- Erro de uso: envio de um arquivo com extensao invalida
+- Variaçao importante: envio de arquivo com extensao `.DOCX` em maiusculas
+
 ## Como rodar o lint
 
-Execute o comando abaixo na raiz do projeto:
+Execute na raiz do projeto:
 
 ```bash
 python -m ruff check .
 ```
 
-## Versão atual
+## CI
+
+O workflow em [`.github/workflows/ci.yml`](C:/Users/Adm/file-convertor/.github/workflows/ci.yml:1) executa:
+
+- Instalacao das dependencias do projeto, incluindo `flask`
+- Instalacao do `pandoc` no ambiente Windows
+- Validacao com `ruff`
+- Execucao dos testes com `pytest`
+
+## Versao atual
 
 `0.1.0`
 
@@ -82,6 +98,6 @@ python -m ruff check .
 
 Vitor Gama Amaral
 
-## Repositório público
+## Repositorio publico
 
-[https://github.com/vitor-gama-amaral/file-convertor](https://github.com/vitor-gama-amaral/file-convertor)
+[GitHub - vitor-gama-amaral/file-convertor](https://github.com/vitor-gama-amaral/file-convertor)
