@@ -2,6 +2,19 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## [0.2.0] - 2026-05-15
+
+### Adicionado
+
+- Deploy publico da aplicacao na Vercel
+- Ponto de entrada `src/index.py` para compatibilidade com a Vercel
+
+### Alterado
+
+- Versao minima do Python ajustada para `>=3.12`
+- Diretorio temporario da aplicacao ajustado para ambiente serverless
+- README atualizado com o link da aplicacao publicada
+
 ## [0.1.0] - 2026-04-11
 
 ### Adicionado

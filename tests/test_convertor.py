@@ -1,7 +1,8 @@
 from io import BytesIO
 from unittest.mock import MagicMock
 
-from src.main import UPLOAD_OPERATION, app
+from src.main import SECURITY_OPERATION, UPLOAD_OPERATION, app
+from src.security.virus_total import VirusTotalResult
 
 
 def test_convert_returns_generated_pdf(monkeypatch):
@@ -82,3 +83,106 @@ def test_convert_accepts_uppercase_docx_extension(monkeypatch):
     assert response.mimetype == "application/pdf"
     assert "RELATORIO.pdf" in response.headers["Content-Disposition"]
     fake_send_file.assert_called_once()
+
+
+def test_security_scan_requires_api_key(monkeypatch):
+    client = app.test_client()
+    monkeypatch.delenv("VIRUSTOTAL_API_KEY", raising=False)
+
+    response = client.post(
+        "/api/security-scan",
+        data={
+            "operation": SECURITY_OPERATION,
+            "file": (BytesIO(b"fake docx content"), "contrato.docx"),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 500
+    assert response.json == {"error": "Configure a variavel VIRUSTOTAL_API_KEY."}
+
+
+def test_security_scan_returns_virus_total_result(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("VIRUSTOTAL_API_KEY", "fake-key")
+
+    def fake_scan_file(_self, content, filename):
+        assert content == b"fake docx content"
+        assert filename == "contrato.docx"
+        return VirusTotalResult(
+            status="safe",
+            message="Nenhuma ameaca foi encontrada na ultima analise conhecida.",
+            sha256="abc123",
+            stats={
+                "harmless": 10,
+                "malicious": 0,
+                "suspicious": 0,
+                "undetected": 2,
+            },
+        )
+
+    monkeypatch.setattr("src.main.VirusTotalClient.scan_file", fake_scan_file)
+
+    response = client.post(
+        "/api/security-scan",
+        data={
+            "operation": SECURITY_OPERATION,
+            "file": (BytesIO(b"fake docx content"), "contrato.docx"),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert response.json == {
+        "status": "safe",
+        "message": "Nenhuma ameaca foi encontrada na ultima analise conhecida.",
+        "sha256": "abc123",
+        "stats": {
+            "harmless": 10,
+            "malicious": 0,
+            "suspicious": 0,
+            "undetected": 2,
+        },
+        "analysis_id": None,
+    }
+
+
+def test_security_analysis_returns_completed_result(monkeypatch):
+    client = app.test_client()
+    monkeypatch.setenv("VIRUSTOTAL_API_KEY", "fake-key")
+
+    def fake_get_analysis_result(_self, analysis_id, sha256):
+        assert analysis_id == "analysis-123"
+        assert sha256 == "abc123"
+        return VirusTotalResult(
+            status="safe",
+            message="Nenhuma ameaca foi encontrada na ultima analise conhecida.",
+            sha256=sha256,
+            stats={
+                "harmless": 10,
+                "malicious": 0,
+                "suspicious": 0,
+                "undetected": 2,
+            },
+        )
+
+    monkeypatch.setattr(
+        "src.main.VirusTotalClient.get_analysis_result",
+        fake_get_analysis_result,
+    )
+
+    response = client.get("/api/security-analysis/analysis-123?sha256=abc123")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "status": "safe",
+        "message": "Nenhuma ameaca foi encontrada na ultima analise conhecida.",
+        "sha256": "abc123",
+        "stats": {
+            "harmless": 10,
+            "malicious": 0,
+            "suspicious": 0,
+            "undetected": 2,
+        },
+        "analysis_id": None,
+    }

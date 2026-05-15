@@ -1,6 +1,12 @@
+import os
 import shutil
 from pathlib import Path
-from tempfile import mkdtemp
+from tempfile import gettempdir, mkdtemp
+
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:
+    load_dotenv = None
 
 from flask import (
     Flask,
@@ -14,11 +20,23 @@ from werkzeug.utils import secure_filename
 
 try:
     from convertor.word2pdfconvertor import TransformadorWordToPDF
+    from security.virus_total import VirusTotalClient, VirusTotalError
 except ModuleNotFoundError:
     from src.convertor.word2pdfconvertor import TransformadorWordToPDF
+    from src.security.virus_total import VirusTotalClient, VirusTotalError
 
 BASE_DIR = Path(__file__).resolve().parent
+ENV_PATH = BASE_DIR.parent / ".env"
+if load_dotenv is not None:
+    load_dotenv(ENV_PATH)
+elif ENV_PATH.exists():
+    for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+        key, separator, value = line.partition("=")
+        if separator and key and not key.lstrip().startswith("#"):
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
 UPLOAD_OPERATION = "docx_to_pdf"
+SECURITY_OPERATION = "virus_scan"
 OPERATIONS = {
     UPLOAD_OPERATION: {
         "slug": "word-para-pdf",
@@ -29,12 +47,27 @@ OPERATIONS = {
         "description": (
             "Envie seu documento .docx e receba o PDF convertido logo em seguida."
         ),
+        "template": "operation.html",
+        "icon": "PDF",
+    },
+    SECURITY_OPERATION: {
+        "slug": "verificar-virus",
+        "title": "Verificar virus",
+        "subtitle": "Consulte a VirusTotal para avaliar possiveis ameacas.",
+        "accept": ".doc,.docx,.pdf,.txt,.png,.jpg,.jpeg",
+        "button": "Selecionar arquivo",
+        "description": (
+            "Envie um arquivo para consultar a VirusTotal e verificar se existe "
+            "algum alerta de seguranca."
+        ),
+        "template": "security_check.html",
+        "icon": "SEC",
     }
 }
 
 app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
-TMP_DIR = BASE_DIR.parent / ".tmp"
+TMP_DIR = Path(gettempdir()) / "file-convertor"
 TMP_DIR.mkdir(exist_ok=True)
 
 
@@ -53,7 +86,7 @@ def operation_page(slug):
         return jsonify({"error": "Operacao invalida."}), 404
 
     return render_template(
-        "operation.html",
+        OPERATIONS[operation_key]["template"],
         operation_key=operation_key,
         operation=OPERATIONS[operation_key],
     )
@@ -94,6 +127,52 @@ def convert_file():
         download_name=output_path.name,
         mimetype="application/pdf",
     )
+
+
+@app.post("/api/security-scan")
+def security_scan():
+    operation = request.form.get("operation")
+    uploaded_file = request.files.get("file")
+
+    if operation != SECURITY_OPERATION:
+        return jsonify({"error": "Operacao invalida."}), 400
+
+    if uploaded_file is None or uploaded_file.filename == "":
+        return jsonify({"error": "Selecione um arquivo para verificar."}), 400
+
+    api_key = os.environ.get("VIRUSTOTAL_API_KEY")
+    if not api_key:
+        return jsonify({"error": "Configure a variavel VIRUSTOTAL_API_KEY."}), 500
+
+    content = uploaded_file.read()
+    if not content:
+        return jsonify({"error": "O arquivo enviado esta vazio."}), 400
+
+    try:
+        result = VirusTotalClient(api_key).scan_file(content, uploaded_file.filename)
+    except VirusTotalError as error:
+        return jsonify({"error": str(error)}), 502
+
+    return jsonify(result.to_dict())
+
+
+@app.get("/api/security-analysis/<analysis_id>")
+def security_analysis(analysis_id):
+    api_key = os.environ.get("VIRUSTOTAL_API_KEY")
+    sha256 = request.args.get("sha256", "")
+
+    if not api_key:
+        return jsonify({"error": "Configure a variavel VIRUSTOTAL_API_KEY."}), 500
+
+    if not sha256:
+        return jsonify({"error": "Informe o hash SHA-256 do arquivo."}), 400
+
+    try:
+        result = VirusTotalClient(api_key).get_analysis_result(analysis_id, sha256)
+    except VirusTotalError as error:
+        return jsonify({"error": str(error)}), 502
+
+    return jsonify(result.to_dict())
 
 
 def main():

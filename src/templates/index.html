@@ -68,7 +68,7 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 260px));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 300px));
             gap: 18px;
             justify-content: center;
         }
@@ -120,6 +120,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
             gap: 12px;
             color: #344054;
             font-weight: 700;
@@ -127,10 +128,12 @@
         }
 
         .pill {
+            max-width: 100%;
             padding: 6px 10px;
             border-radius: 999px;
             background: #f2f4f7;
             font-size: 0.82rem;
+            overflow-wrap: anywhere;
         }
 
         @media (max-width: 640px) {
@@ -147,7 +150,7 @@
         <section class="grid">
             {% for operation_key, operation in operations.items() %}
             <a class="tool-card" href="/operacoes/{{ operation.slug }}">
-                <div class="tool-icon">PDF</div>
+                <div class="tool-icon">{{ operation.icon }}</div>
                 <h2>{{ operation.title }}</h2>
                 <p>{{ operation.subtitle }}</p>
                 <div class="tool-footer">
