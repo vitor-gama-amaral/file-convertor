@@ -121,14 +121,13 @@ O workflow em [`.github/workflows/ci.yml`](C:/Users/Adm/file-convertor/.github/w
 
 ## Deploy
 
-Para deploy em nuvem, configure a variavel `VIRUSTOTAL_API_KEY` no provedor
-escolhido antes de iniciar a aplicacao. A aplicacao Flask pode ser publicada em
-servicos como Render, Railway, Azure App Service ou PythonAnywhere, desde que o
-ambiente tenha as dependencias do `requirements.txt` instaladas.
+Aplicacao publicada na Vercel:
+[https://file-convertor-npusuolth-vitor-gama-amarals-projects.vercel.app](https://file-convertor-npusuolth-vitor-gama-amarals-projects.vercel.app)
+
 
 ## Versao atual
 
-`0.1.0`
+`0.2.0`
 
 ## Autor
 
