@@ -6,7 +6,7 @@ authors = [
     {name = "vitor-gama-amaral",email = "vitor.gama@sempreceub.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "docx2pdf (>=0.1.8,<0.2.0)",
     "flask (>=3.1.2,<4.0.0)",

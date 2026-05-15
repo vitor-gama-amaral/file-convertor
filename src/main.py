@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from tempfile import mkdtemp
+from tempfile import gettempdir, mkdtemp
 
 try:
     from dotenv import load_dotenv
@@ -67,7 +67,7 @@ OPERATIONS = {
 
 app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
-TMP_DIR = BASE_DIR.parent / ".tmp"
+TMP_DIR = Path(gettempdir()) / "file-convertor"
 TMP_DIR.mkdir(exist_ok=True)
 
 

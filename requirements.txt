@@ -1,4 +1,4 @@
-# Python >=3.14
+# Python >=3.12
 docx2pdf>=0.1.8,<0.2.0
 flask>=3.1.2,<4.0.0
 pypandoc[tinytex]>=1.17,<2.0
