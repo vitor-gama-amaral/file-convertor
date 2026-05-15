@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ operation.title }} | File Convertor</title>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --card: #ffffff;
+            --ink: #1f2937;
+            --muted: #667085;
+            --accent: #2563eb;
+            --accent-dark: #1d4ed8;
+            --border: #e5e7eb;
+            --surface: #eff6ff;
+            --success: #027a48;
+            --warning: #b54708;
+            --danger: #b42318;
+            --shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--ink);
+            background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        .page {
+            width: min(100%, 1180px);
+            margin: 0 auto;
+            padding: 32px 24px 56px;
+        }
+
+        .topbar {
+            margin-bottom: 44px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 28px;
+            align-items: stretch;
+        }
+
+        .intro,
+        .upload-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            box-shadow: var(--shadow);
+        }
+
+        .intro {
+            padding: 36px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .badge {
+            width: fit-content;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 18px 0 12px;
+            font-size: clamp(2.4rem, 5vw, 4rem);
+            line-height: 0.95;
+        }
+
+        .intro p,
+        .upload-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 1.02rem;
+        }
+
+        .steps {
+            display: grid;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .step {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: #f8fafc;
+        }
+
+        .step-number {
+            display: inline-grid;
+            place-items: center;
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--surface);
+            font-weight: 800;
+            color: #1e3a8a;
+        }
+
+        .upload-card {
+            padding: 28px;
+        }
+
+        .upload-card h2 {
+            margin: 0 0 8px;
+            font-size: 1.5rem;
+        }
+
+        .dropzone {
+            position: relative;
+            display: grid;
+            gap: 14px;
+            place-items: center;
+            min-height: 240px;
+            margin-top: 22px;
+            padding: 24px;
+            border: 2px dashed #d0d5dd;
+            border-radius: 24px;
+            background: linear-gradient(180deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.01));
+            text-align: center;
+        }
+
+        .dropzone strong {
+            font-size: 1.15rem;
+        }
+
+        .dropzone span {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .dropzone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-button,
+        .scan-button {
+            width: 100%;
+            border: none;
+            border-radius: 18px;
+            font: inherit;
+            font-weight: 700;
+        }
+
+        .upload-button {
+            max-width: 280px;
+            padding: 15px 18px;
+            background: #111827;
+            color: #fff;
+        }
+
+        .scan-button {
+            margin-top: 18px;
+            padding: 16px 20px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 16px 28px rgba(37, 99, 235, 0.22);
+        }
+
+        .scan-button:disabled {
+            cursor: wait;
+            opacity: 0.78;
+        }
+
+        .file-name {
+            min-height: 24px;
+            margin-top: 14px;
+            color: #344054;
+            font-weight: 600;
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 14px;
+            font-weight: 700;
+        }
+
+        .status.safe {
+            color: var(--success);
+        }
+
+        .status.suspicious,
+        .status.unknown,
+        .status.queued {
+            color: var(--warning);
+        }
+
+        .status.malicious,
+        .status.error {
+            color: var(--danger);
+        }
+
+        .result {
+            display: none;
+            margin-top: 18px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: #f8fafc;
+        }
+
+        .result dl {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 14px;
+            margin: 0;
+        }
+
+        .result dt {
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .result dd {
+            margin: 0;
+            word-break: break-word;
+        }
+
+        @media (max-width: 920px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="topbar">
+            <a class="back-link" href="/">Voltar para as ferramentas</a>
+        </div>
+
+        <section class="hero">
+            <div class="intro">
+                <div>
+                    <span class="badge">{{ operation.title }}</span>
+                    <h1>{{ operation.title }}</h1>
+                    <p>{{ operation.description }}</p>
+                </div>
+
+                <div class="steps">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <span>Selecione um arquivo recebido ou baixado no painel ao lado.</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <span>A aplicacao consulta o hash e envia o arquivo se ele ainda nao existir na VirusTotal.</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <span>Veja se existe alerta conhecido antes de usar ou converter o arquivo.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-card">
+                <h2>Verificar arquivo</h2>
+                <p>Se o hash ainda nao existir na base, o arquivo sera enviado para analise.</p>
+
+                <form id="scan-form">
+                    <input type="hidden" name="operation" value="{{ operation_key }}">
+
+                    <label class="dropzone" for="file">
+                        <strong>{{ operation.button }}</strong>
+                        <span>Arraste um arquivo aqui ou clique para procurar no computador.</span>
+                        <span>Tipos sugeridos: {{ operation.accept }}</span>
+                        <button class="upload-button" type="button">Escolher arquivo</button>
+                        <input id="file" name="file" type="file" accept="{{ operation.accept }}" required>
+                    </label>
+
+                    <div id="file-name" class="file-name"></div>
+                    <button id="submit-button" class="scan-button" type="submit">Verificar seguranca</button>
+                    <div id="status" class="status" aria-live="polite"></div>
+
+                    <div id="result" class="result">
+                        <dl>
+                            <dt>Malicioso</dt>
+                            <dd id="malicious">0</dd>
+                            <dt>Suspeito</dt>
+                            <dd id="suspicious">0</dd>
+                            <dt>Inofensivo</dt>
+                            <dd id="harmless">0</dd>
+                            <dt>SHA-256</dt>
+                            <dd id="sha256"></dd>
+                        </dl>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const form = document.getElementById("scan-form");
+        const fileInput = document.getElementById("file");
+        const fileNameEl = document.getElementById("file-name");
+        const statusEl = document.getElementById("status");
+        const submitButton = document.getElementById("submit-button");
+        const resultEl = document.getElementById("result");
+        const maxPollingAttempts = 18;
+        const pollingIntervalMs = 5000;
+
+        fileInput.addEventListener("change", () => {
+            const [file] = fileInput.files;
+            fileNameEl.textContent = file ? `Arquivo selecionado: ${file.name}` : "";
+            resultEl.style.display = "none";
+        });
+
+        function showScanResult(data) {
+            statusEl.textContent = data.message;
+            statusEl.className = `status ${data.status}`;
+
+            if (data.status === "queued" || Object.keys(data.stats || {}).length === 0) {
+                resultEl.style.display = "none";
+                return false;
+            }
+
+            document.getElementById("malicious").textContent = data.stats.malicious || 0;
+            document.getElementById("suspicious").textContent = data.stats.suspicious || 0;
+            document.getElementById("harmless").textContent = data.stats.harmless || 0;
+            document.getElementById("sha256").textContent = data.sha256;
+            resultEl.style.display = "block";
+            return true;
+        }
+
+        function wait(ms) {
+            return new Promise((resolve) => {
+                window.setTimeout(resolve, ms);
+            });
+        }
+
+        async function pollAnalysis(data) {
+            if (data.status !== "queued" || !data.analysis_id || !data.sha256) {
+                return;
+            }
+
+            for (let attempt = 1; attempt <= maxPollingAttempts; attempt += 1) {
+                statusEl.textContent = `Analise em processamento... tentativa ${attempt}/${maxPollingAttempts}`;
+                statusEl.className = "status queued";
+                await wait(pollingIntervalMs);
+
+                const response = await fetch(
+                    `/api/security-analysis/${encodeURIComponent(data.analysis_id)}?sha256=${encodeURIComponent(data.sha256)}`
+                );
+                const nextData = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(nextData.error || "Nao foi possivel consultar a analise.");
+                }
+
+                if (showScanResult(nextData)) {
+                    return;
+                }
+            }
+
+            statusEl.textContent = "A analise ainda esta em processamento. Tente verificar o mesmo arquivo novamente em alguns instantes.";
+            statusEl.className = "status queued";
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            statusEl.textContent = "Consultando a VirusTotal...";
+            statusEl.className = "status";
+            submitButton.disabled = true;
+            resultEl.style.display = "none";
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch("/api/security-scan", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Nao foi possivel verificar o arquivo.");
+                }
+
+                if (!showScanResult(data)) {
+                    await pollAnalysis(data);
+                }
+            } catch (error) {
+                statusEl.textContent = error.message;
+                statusEl.className = "status error";
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
