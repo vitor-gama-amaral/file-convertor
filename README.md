@@ -28,6 +28,8 @@ especialmente quando os arquivos contem informacoes importantes ou sensiveis.
 ## Funcionalidades principais
 
 - Conversao de arquivos `.docx` para `.pdf`
+- Uniao de dois ou mais arquivos PDF em um unico documento
+- Separacao de paginas de um PDF por intervalo numerico
 - Verificacao de seguranca de arquivos com analise pela VirusTotal
 - Interface web com upload e download imediato do arquivo convertido
 - Validacao do tipo de arquivo enviado
@@ -39,6 +41,7 @@ especialmente quando os arquivos contem informacoes importantes ou sensiveis.
 - Python 3.14+
 - Flask
 - VirusTotal API
+- `pypdf`
 - `pypandoc`
 - `docx2pdf`
 - `pytest`
@@ -84,7 +87,7 @@ python src/main.py
 ```
 
 A aplicacao inicia um servidor Flask local com as funcionalidades de conversao
-Word para PDF e verificacao de seguranca de arquivos.
+Word para PDF, edicao de PDFs e verificacao de seguranca de arquivos.
 
 ## Como rodar os testes
 
@@ -99,6 +102,8 @@ Atualmente a suite cobre:
 - Cenario de sucesso: envio de um arquivo `.docx` valido e retorno do PDF
 - Erro de uso: envio de um arquivo com extensao invalida
 - Variacao importante: envio de arquivo com extensao `.DOCX` em maiusculas
+- Uniao de PDFs com validacao de quantidade e extensao
+- Separacao de PDFs com validacao do intervalo de paginas
 - Integracao com a funcionalidade de verificacao de virus usando mock da API
 - Validacao da configuracao da chave `VIRUSTOTAL_API_KEY`
 

@@ -2,6 +2,15 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
+## [Nao publicado]
+
+### Adicionado
+
+- Operacao de edicao de PDF com uniao de multiplos arquivos e separacao por intervalo de paginas
+- Rotas `/api/pdf/merge` e `/api/pdf/split` com validacao de arquivos e paginas
+- Interface web para upload multiplo, ordenacao de PDFs e formulario de recorte
+- Testes automatizados para os principais fluxos de merge e split
+
 ## [0.2.0] - 2026-05-15
 
 ### Adicionado

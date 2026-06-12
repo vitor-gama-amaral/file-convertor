@@ -1,5 +1,6 @@
 import os
 import shutil
+from io import BytesIO
 from pathlib import Path
 from tempfile import gettempdir, mkdtemp
 
@@ -16,6 +17,8 @@ from flask import (
     request,
     send_file,
 )
+from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PdfReadError
 from werkzeug.utils import secure_filename
 
 try:
@@ -37,6 +40,7 @@ elif ENV_PATH.exists():
 
 UPLOAD_OPERATION = "docx_to_pdf"
 SECURITY_OPERATION = "virus_scan"
+PDF_OPERATION = "pdf_tools"
 OPERATIONS = {
     UPLOAD_OPERATION: {
         "slug": "word-para-pdf",
@@ -62,6 +66,19 @@ OPERATIONS = {
         ),
         "template": "security_check.html",
         "icon": "SEC",
+    },
+    PDF_OPERATION: {
+        "slug": "editar-pdf",
+        "title": "Editar PDF",
+        "subtitle": "Una varios PDFs ou separe um intervalo de paginas.",
+        "accept": ".pdf",
+        "button": "Selecionar PDF",
+        "description": (
+            "Combine documentos PDF em um unico arquivo ou extraia apenas as "
+            "paginas que voce precisa."
+        ),
+        "template": "pdf_tools.html",
+        "icon": "PDF",
     }
 }
 
@@ -127,6 +144,111 @@ def convert_file():
         download_name=output_path.name,
         mimetype="application/pdf",
     )
+
+
+def _read_uploaded_pdf(uploaded_file):
+    filename = secure_filename(uploaded_file.filename or "")
+    if not filename:
+        raise ValueError("Selecione um arquivo PDF.")
+
+    if not filename.lower().endswith(".pdf"):
+        raise ValueError("Apenas arquivos PDF sao permitidos.")
+
+    content = uploaded_file.read()
+    if not content:
+        raise ValueError("O arquivo enviado esta vazio.")
+
+    try:
+        reader = PdfReader(BytesIO(content))
+        page_count = len(reader.pages)
+    except (PdfReadError, ValueError, TypeError) as error:
+        raise ValueError("Nao foi possivel ler o PDF enviado.") from error
+
+    if page_count == 0:
+        raise ValueError("O PDF enviado nao possui paginas.")
+
+    return filename, reader
+
+
+def _write_pdf_response(writer, download_name):
+    output = BytesIO()
+    writer.write(output)
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/pdf",
+    )
+
+
+@app.post("/api/pdf/merge")
+def merge_pdf_files():
+    uploaded_files = request.files.getlist("files")
+    if not uploaded_files:
+        uploaded_files = request.files.getlist("files[]")
+
+    uploaded_files = [file for file in uploaded_files if file and file.filename]
+    if len(uploaded_files) < 2:
+        return jsonify({"error": "Envie pelo menos dois arquivos PDF."}), 400
+
+    writer = PdfWriter()
+
+    try:
+        for uploaded_file in uploaded_files:
+            _filename, reader = _read_uploaded_pdf(uploaded_file)
+            for page in reader.pages:
+                writer.add_page(page)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return _write_pdf_response(writer, "pdf-unificado.pdf")
+
+
+@app.post("/api/pdf/split")
+def split_pdf_file():
+    uploaded_file = request.files.get("file")
+    if uploaded_file is None or uploaded_file.filename == "":
+        return jsonify({"error": "Selecione um arquivo PDF."}), 400
+
+    try:
+        start_page = int(request.form.get("start_page", ""))
+        end_page = int(request.form.get("end_page", ""))
+    except ValueError:
+        return jsonify({"error": "Informe paginas inicial e final validas."}), 400
+
+    if start_page < 1 or end_page < 1:
+        return jsonify({"error": "As paginas devem ser maiores que zero."}), 400
+
+    if start_page > end_page:
+        return (
+            jsonify({"error": "A pagina inicial deve ser menor ou igual a final."}),
+            400,
+        )
+
+    try:
+        filename, reader = _read_uploaded_pdf(uploaded_file)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+    page_count = len(reader.pages)
+    if end_page > page_count:
+        return jsonify(
+            {
+                "error": (
+                    f"O intervalo solicitado vai ate a pagina {end_page}, "
+                    f"mas o PDF possui apenas {page_count} paginas."
+                )
+            }
+        ), 400
+
+    writer = PdfWriter()
+    for page_number in range(start_page - 1, end_page):
+        writer.add_page(reader.pages[page_number])
+
+    output_name = f"{Path(filename).stem}-paginas-{start_page}-{end_page}.pdf"
+    return _write_pdf_response(writer, output_name)
 
 
 @app.post("/api/security-scan")
