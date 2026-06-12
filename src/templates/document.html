@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download temporario | File Convertor</title>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --card: #ffffff;
+            --ink: #1f2937;
+            --muted: #667085;
+            --accent: #e5322d;
+            --accent-dark: #c61f1b;
+            --border: #e5e7eb;
+            --success: #027a48;
+            --danger: #b42318;
+            --shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--ink);
+            background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        .panel {
+            width: min(100%, 560px);
+            padding: 30px;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: var(--card);
+            box-shadow: var(--shadow);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #fff1f0;
+            color: var(--accent);
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 18px 0 10px;
+            font-size: clamp(2rem, 6vw, 3rem);
+            line-height: 1;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .details {
+            display: none;
+            margin-top: 22px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: #f8fafc;
+        }
+
+        .details.is-visible {
+            display: grid;
+            gap: 8px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            color: var(--muted);
+        }
+
+        .detail-row strong {
+            color: var(--ink);
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .download-button {
+            display: none;
+            width: 100%;
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+            color: #fff;
+            font-weight: 800;
+            text-align: center;
+            text-decoration: none;
+            box-shadow: 0 16px 28px rgba(229, 50, 45, 0.24);
+        }
+
+        .download-button.is-visible {
+            display: block;
+        }
+
+        .status {
+            margin-top: 14px;
+            font-weight: 800;
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        .home-link {
+            display: inline-block;
+            margin-top: 18px;
+            color: var(--muted);
+            font-weight: 700;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <main class="panel">
+        <span class="badge">File Convertor</span>
+        <h1 id="title">Validando link</h1>
+        <p id="message">Estamos verificando se o documento ainda esta disponivel.</p>
+
+        <div id="details" class="details">
+            <div class="detail-row">
+                <span>Arquivo</span>
+                <strong id="filename"></strong>
+            </div>
+            <div class="detail-row">
+                <span>Expira em</span>
+                <strong id="expires-at"></strong>
+            </div>
+        </div>
+
+        <a id="download-button" class="download-button" href="#">Baixar PDF</a>
+        <div id="status" class="status" aria-live="polite"></div>
+        <a class="home-link" href="/">Voltar para as ferramentas</a>
+    </main>
+
+    <script>
+        const token = "{{ token }}";
+        const titleEl = document.getElementById("title");
+        const messageEl = document.getElementById("message");
+        const statusEl = document.getElementById("status");
+        const detailsEl = document.getElementById("details");
+        const filenameEl = document.getElementById("filename");
+        const expiresAtEl = document.getElementById("expires-at");
+        const downloadButton = document.getElementById("download-button");
+
+        async function loadDocument() {
+            try {
+                const response = await fetch(`/api/documents/${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    titleEl.textContent = "Documento expirado";
+                    messageEl.textContent = data.message || "O documento expirou e foi removido.";
+                    statusEl.textContent = "Este link nao esta mais disponivel.";
+                    statusEl.className = "status error";
+                    return;
+                }
+
+                titleEl.textContent = "Documento disponivel";
+                messageEl.textContent = "O link ainda esta valido. Use o botao abaixo para baixar o PDF.";
+                filenameEl.textContent = data.document.filename;
+                expiresAtEl.textContent = new Date(data.document.expires_at).toLocaleString("pt-BR");
+                downloadButton.href = data.download_url;
+                detailsEl.classList.add("is-visible");
+                downloadButton.classList.add("is-visible");
+                statusEl.textContent = "Download liberado.";
+                statusEl.className = "status success";
+            } catch (_error) {
+                titleEl.textContent = "Nao foi possivel validar";
+                messageEl.textContent = "Tente abrir o link novamente em alguns instantes.";
+                statusEl.textContent = "Falha ao consultar o cofre de documentos.";
+                statusEl.className = "status error";
+            }
+        }
+
+        loadDocument();
+    </script>
+</body>
+</html>

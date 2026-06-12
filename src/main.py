@@ -10,19 +10,30 @@ except ModuleNotFoundError:
 
 from flask import (
     Flask,
-    after_this_request,
     jsonify,
+    redirect,
     render_template,
     request,
     send_file,
+    url_for,
 )
 from werkzeug.utils import secure_filename
 
 try:
     from convertor.word2pdfconvertor import TransformadorWordToPDF
+    from document_vault import (
+        DocumentVaultError,
+        DocumentVaultService,
+        start_document_cleanup_scheduler,
+    )
     from security.virus_total import VirusTotalClient, VirusTotalError
 except ModuleNotFoundError:
     from src.convertor.word2pdfconvertor import TransformadorWordToPDF
+    from src.document_vault import (
+        DocumentVaultError,
+        DocumentVaultService,
+        start_document_cleanup_scheduler,
+    )
     from src.security.virus_total import VirusTotalClient, VirusTotalError
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -37,6 +48,7 @@ elif ENV_PATH.exists():
 
 UPLOAD_OPERATION = "docx_to_pdf"
 SECURITY_OPERATION = "virus_scan"
+VAULT_OPERATION = "temporary_pdf_link"
 OPERATIONS = {
     UPLOAD_OPERATION: {
         "slug": "word-para-pdf",
@@ -62,13 +74,28 @@ OPERATIONS = {
         ),
         "template": "security_check.html",
         "icon": "SEC",
-    }
+    },
+    VAULT_OPERATION: {
+        "slug": "link-temporario-pdf",
+        "title": "Link temporario",
+        "subtitle": "Guarde um PDF validado e gere um link curto por 24 horas.",
+        "accept": ".pdf",
+        "button": "Selecionar PDF",
+        "description": (
+            "Envie um PDF pronto para registrar no cofre temporario e compartilhar "
+            "um link seguro de download."
+        ),
+        "template": "document_vault.html",
+        "icon": "LINK",
+    },
 }
 
 app = Flask(__name__, template_folder=str(BASE_DIR / "templates"))
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 TMP_DIR = Path(gettempdir()) / "file-convertor"
 TMP_DIR.mkdir(exist_ok=True)
+DOCUMENT_VAULT_DIR = Path(os.environ.get("DOCUMENT_VAULT_DIR", TMP_DIR / "vault"))
+app.config["DOCUMENT_VAULT_DIR"] = str(DOCUMENT_VAULT_DIR)
 
 
 @app.get("/")
@@ -92,6 +119,43 @@ def operation_page(slug):
     )
 
 
+def get_document_vault_service() -> DocumentVaultService:
+    service = app.extensions.get("document_vault")
+    if service is None:
+        service = DocumentVaultService.from_env(DOCUMENT_VAULT_DIR)
+        app.extensions["document_vault"] = service
+    return service
+
+
+def validate_uploaded_file_security(content: bytes, filename: str):
+    api_key = os.environ.get("VIRUSTOTAL_API_KEY")
+    if not api_key:
+        return jsonify({"error": "Configure a variavel VIRUSTOTAL_API_KEY."}), 500
+
+    try:
+        result = VirusTotalClient(api_key).scan_file(content, filename)
+    except VirusTotalError as error:
+        return jsonify({"error": str(error)}), 502
+
+    if result.status == "queued":
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "A VirusTotal ainda esta processando este arquivo. "
+                        "Tente novamente em alguns instantes."
+                    )
+                }
+            ),
+            409,
+        )
+
+    if result.status != "safe":
+        return jsonify({"error": result.message}), 422
+
+    return None
+
+
 @app.post("/api/convert")
 def convert_file():
     operation = request.form.get("operation")
@@ -107,25 +171,140 @@ def convert_file():
     if not filename.lower().endswith(".docx"):
         return jsonify({"error": "Apenas arquivos .docx sao permitidos."}), 400
 
+    content = uploaded_file.read()
+    if not content:
+        return jsonify({"error": "O arquivo enviado esta vazio."}), 400
+
+    security_error = validate_uploaded_file_security(content, filename)
+    if security_error is not None:
+        return security_error
+
     tmp_path = Path(mkdtemp(dir=TMP_DIR))
     input_path = tmp_path / filename
     output_path = tmp_path / f"{input_path.stem}.pdf"
 
-    input_path.write_bytes(uploaded_file.read())
+    try:
+        input_path.write_bytes(content)
 
-    converter = TransformadorWordToPDF(str(input_path), str(output_path))
-    converter.transform()
+        converter = TransformadorWordToPDF(str(input_path), str(output_path))
+        converter.transform()
 
-    @after_this_request
-    def cleanup(response):
+        registration = get_document_vault_service().store_pdf(
+            output_path,
+            output_path.name,
+        )
+    except DocumentVaultError as error:
+        return jsonify({"error": str(error)}), 500
+    finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
-        return response
+
+    return (
+        jsonify(
+            {
+                "download_url": url_for(
+                    "document_page",
+                    token=registration.token,
+                    _external=True,
+                ),
+                "expires_at": registration.record.expires_at.isoformat(),
+                "filename": registration.record.filename,
+                "file_size": registration.record.file_size,
+            }
+        ),
+        201,
+    )
+
+
+@app.post("/api/documents")
+def register_document():
+    uploaded_file = request.files.get("file")
+
+    if uploaded_file is None or uploaded_file.filename == "":
+        return jsonify({"error": "Selecione um arquivo PDF."}), 400
+
+    filename = secure_filename(uploaded_file.filename)
+    if not filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Apenas arquivos PDF podem ser registrados."}), 400
+
+    tmp_path = Path(mkdtemp(dir=TMP_DIR))
+    input_path = tmp_path / filename
+
+    try:
+        content = uploaded_file.read()
+        if not content:
+            return jsonify({"error": "O arquivo enviado esta vazio."}), 400
+
+        input_path.write_bytes(content)
+        registration = get_document_vault_service().store_pdf(input_path, filename)
+    except DocumentVaultError as error:
+        return jsonify({"error": str(error)}), 500
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    return (
+        jsonify(
+            {
+                "download_url": url_for(
+                    "document_page",
+                    token=registration.token,
+                    _external=True,
+                ),
+                "expires_at": registration.record.expires_at.isoformat(),
+                "filename": registration.record.filename,
+                "file_size": registration.record.file_size,
+            }
+        ),
+        201,
+    )
+
+
+@app.get("/d/<token>")
+def document_page(token):
+    return render_template("document.html", token=token)
+
+
+@app.get("/api/documents/<token>")
+def document_status(token):
+    try:
+        lookup = get_document_vault_service().lookup(token)
+    except DocumentVaultError as error:
+        return jsonify({"error": str(error)}), 500
+
+    if lookup.status != "available" or lookup.record is None:
+        return (
+            jsonify(
+                {
+                    "status": "expired",
+                    "message": "O documento expirou e foi removido.",
+                }
+            ),
+            404,
+        )
+
+    return jsonify(
+        {
+            "status": "available",
+            "document": lookup.record.to_public_dict(),
+            "download_url": url_for("download_document", token=token),
+        }
+    )
+
+
+@app.get("/api/documents/<token>/download")
+def download_document(token):
+    try:
+        lookup = get_document_vault_service().lookup(token)
+    except DocumentVaultError as error:
+        return jsonify({"error": str(error)}), 500
+
+    if lookup.status != "available" or lookup.record is None:
+        return redirect(url_for("document_page", token=token))
 
     return send_file(
-        output_path,
+        lookup.record.stored_path,
         as_attachment=True,
-        download_name=output_path.name,
-        mimetype="application/pdf",
+        download_name=lookup.record.filename,
+        mimetype=lookup.record.mime_type,
     )
 
 
@@ -175,8 +354,17 @@ def security_analysis(analysis_id):
     return jsonify(result.to_dict())
 
 
+def maybe_start_document_cleanup_scheduler():
+    if os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_ROLE_KEY"):
+        start_document_cleanup_scheduler(app)
+
+
 def main():
+    maybe_start_document_cleanup_scheduler()
     app.run(debug=True)
+
+
+maybe_start_document_cleanup_scheduler()
 
 
 if __name__ == "__main__":
