@@ -2,14 +2,28 @@
 
 Todas as mudancas relevantes deste projeto serao registradas aqui.
 
-## [Nao publicado]
+## [0.3.0] - 2026-06-12
 
 ### Adicionado
 
-- Operacao de edicao de PDF com uniao de multiplos arquivos e separacao por intervalo de paginas
-- Rotas `/api/pdf/merge` e `/api/pdf/split` com validacao de arquivos e paginas
-- Interface web para upload multiplo, ordenacao de PDFs e formulario de recorte
-- Testes automatizados para os principais fluxos de merge e split
+- Cofre temporario de PDFs com registro em Supabase/Postgres
+- Link publico curto para download de PDFs convertidos
+- Card e pagina para gerar link temporario de PDFs ja prontos
+- Tela de destino para validar links ativos ou expirados
+- Limpeza automatica diaria de registros e arquivos expirados
+- Modelo SQL versionado em `supabase/document_vault.sql`
+- Testes automatizados para registro, consulta, download e limpeza do cofre
+
+### Alterado
+
+- Conversao Word para PDF agora valida o arquivo na VirusTotal antes de gerar o link
+- Fluxo de conversao passou a retornar JSON com link temporario em vez de iniciar download imediato
+- Workflow de CI passou a instalar dependencias via `requirements.txt`
+
+### Corrigido
+
+- Normalizacao de `SUPABASE_URL` quando configurada com `/rest/v1`
+- Normalizacao do nome da tabela quando configurado como `public.document_vault`
 
 ## [0.2.0] - 2026-05-15
 
