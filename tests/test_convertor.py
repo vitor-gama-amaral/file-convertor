@@ -3,6 +3,8 @@ from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from pypdf import PdfReader, PdfWriter
+
 from src.document_vault import DocumentVaultLookup, DocumentVaultRecord
 from src.main import SECURITY_OPERATION, UPLOAD_OPERATION, VAULT_OPERATION, app
 from src.security.virus_total import VirusTotalResult
@@ -32,6 +34,18 @@ def build_document_record(stored_path="C:/tmp/contrato.pdf"):
         file_size=17,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
     )
+
+
+def make_pdf(page_count):
+    output = BytesIO()
+    writer = PdfWriter()
+
+    for _page in range(page_count):
+        writer.add_blank_page(width=72, height=72)
+
+    writer.write(output)
+    output.seek(0)
+    return output.getvalue()
 
 
 def test_convert_returns_generated_download_link(monkeypatch):
