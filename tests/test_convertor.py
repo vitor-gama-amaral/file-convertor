@@ -3,6 +3,8 @@ from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from pypdf import PdfReader, PdfWriter
+
 from src.document_vault import DocumentVaultLookup, DocumentVaultRecord
 from src.main import SECURITY_OPERATION, UPLOAD_OPERATION, VAULT_OPERATION, app
 from src.security.virus_total import VirusTotalResult
@@ -32,6 +34,18 @@ def build_document_record(stored_path="C:/tmp/contrato.pdf"):
         file_size=17,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
     )
+
+
+def make_pdf(page_count):
+    output = BytesIO()
+    writer = PdfWriter()
+
+    for _page in range(page_count):
+        writer.add_blank_page(width=72, height=72)
+
+    writer.write(output)
+    output.seek(0)
+    return output.getvalue()
 
 
 def test_convert_returns_generated_download_link(monkeypatch):
@@ -252,6 +266,118 @@ def test_security_scan_returns_virus_total_result(monkeypatch):
             "undetected": 2,
         },
         "analysis_id": None,
+    }
+
+
+def test_pdf_merge_returns_single_pdf_with_all_pages():
+    client = app.test_client()
+
+    response = client.post(
+        "/api/pdf/merge",
+        data={
+            "files": [
+                (BytesIO(make_pdf(2)), "primeiro.pdf"),
+                (BytesIO(make_pdf(3)), "segundo.pdf"),
+            ],
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert "attachment" in response.headers["Content-Disposition"]
+    assert "pdf-unificado.pdf" in response.headers["Content-Disposition"]
+    assert len(PdfReader(BytesIO(response.data)).pages) == 5
+
+
+def test_pdf_merge_requires_at_least_two_files():
+    client = app.test_client()
+
+    response = client.post(
+        "/api/pdf/merge",
+        data={"files": [(BytesIO(make_pdf(1)), "unico.pdf")]},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"error": "Envie pelo menos dois arquivos PDF."}
+
+
+def test_pdf_merge_rejects_non_pdf_extension():
+    client = app.test_client()
+
+    response = client.post(
+        "/api/pdf/merge",
+        data={
+            "files": [
+                (BytesIO(make_pdf(1)), "documento.pdf"),
+                (BytesIO(b"not a pdf"), "imagem.png"),
+            ],
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"error": "Apenas arquivos PDF sao permitidos."}
+
+
+def test_pdf_split_returns_selected_page_range():
+    client = app.test_client()
+
+    response = client.post(
+        "/api/pdf/split",
+        data={
+            "file": (BytesIO(make_pdf(5)), "relatorio.pdf"),
+            "start_page": "2",
+            "end_page": "4",
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert "relatorio-paginas-2-4.pdf" in response.headers["Content-Disposition"]
+    assert len(PdfReader(BytesIO(response.data)).pages) == 3
+
+
+def test_pdf_split_rejects_page_range_outside_document():
+    client = app.test_client()
+
+    response = client.post(
+        "/api/pdf/split",
+        data={
+            "file": (BytesIO(make_pdf(5)), "relatorio.pdf"),
+            "start_page": "1",
+            "end_page": "10",
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "error": (
+            "O intervalo solicitado vai ate a pagina 10, "
+            "mas o PDF possui apenas 5 paginas."
+        )
+    }
+
+
+def test_pdf_split_rejects_inverted_range():
+    client = app.test_client()
+
+    response = client.post(
+        "/api/pdf/split",
+        data={
+            "file": (BytesIO(make_pdf(5)), "relatorio.pdf"),
+            "start_page": "4",
+            "end_page": "2",
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "error": "A pagina inicial deve ser menor ou igual a final."
     }
 
 

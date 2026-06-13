@@ -28,6 +28,8 @@ especialmente quando os arquivos contem informacoes importantes ou sensiveis.
 ## Funcionalidades principais
 
 - Conversao de arquivos `.docx` para `.pdf`
+- Uniao de dois ou mais arquivos PDF em um unico documento
+- Separacao de paginas de um PDF por intervalo numerico
 - Verificacao de seguranca de arquivos com analise pela VirusTotal
 - Geracao de link temporario para download seguro do PDF convertido ou enviado
 - Cofre de documentos com persistencia em Supabase/Postgres
@@ -43,6 +45,7 @@ especialmente quando os arquivos contem informacoes importantes ou sensiveis.
 - Flask
 - Supabase/Postgres
 - VirusTotal API
+- `pypdf`
 - `pypandoc`
 - `docx2pdf`
 - `pytest`
@@ -141,6 +144,8 @@ Atualmente a suite cobre:
 - Cenario de sucesso: envio de um arquivo `.docx` valido e retorno do link temporario
 - Erro de uso: envio de um arquivo com extensao invalida
 - Variacao importante: envio de arquivo com extensao `.DOCX` em maiusculas
+- Uniao de PDFs com validacao de quantidade e extensao
+- Separacao de PDFs com validacao do intervalo de paginas
 - Integracao com a funcionalidade de verificacao de virus usando mock da API
 - Validacao da configuracao da chave `VIRUSTOTAL_API_KEY`
 - Card e pagina de criacao de link temporario para PDF

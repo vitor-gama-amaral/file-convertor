@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ operation.title }} | File Convertor</title>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --card: #ffffff;
+            --ink: #1f2937;
+            --muted: #667085;
+            --accent: #e5322d;
+            --accent-dark: #c61f1b;
+            --border: #e5e7eb;
+            --surface: #fff1f0;
+            --success: #027a48;
+            --danger: #b42318;
+            --shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--ink);
+            background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .page {
+            width: min(100%, 1180px);
+            margin: 0 auto;
+            padding: 32px 24px 56px;
+        }
+
+        .topbar {
+            margin-bottom: 34px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        .intro {
+            margin-bottom: 24px;
+        }
+
+        .badge {
+            width: fit-content;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 16px 0 10px;
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            line-height: 1;
+        }
+
+        .intro p,
+        .tool-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 1rem;
+        }
+
+        .tools {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
+            align-items: start;
+        }
+
+        .tool-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+        }
+
+        .tool-card h2 {
+            margin: 0 0 8px;
+            font-size: 1.45rem;
+        }
+
+        .dropzone {
+            position: relative;
+            display: grid;
+            gap: 12px;
+            place-items: center;
+            min-height: 210px;
+            margin-top: 20px;
+            padding: 22px;
+            border: 2px dashed #d0d5dd;
+            border-radius: 24px;
+            background: linear-gradient(180deg, rgba(229, 50, 45, 0.05), rgba(229, 50, 45, 0.01));
+            text-align: center;
+            transition: border-color 0.18s ease, background 0.18s ease;
+        }
+
+        .dropzone.is-dragging {
+            border-color: var(--accent);
+            background: #fff1f0;
+        }
+
+        .dropzone strong {
+            font-size: 1.1rem;
+        }
+
+        .dropzone span {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .dropzone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-button,
+        .action-button {
+            width: 100%;
+            border: none;
+            border-radius: 18px;
+            font-weight: 700;
+        }
+
+        .upload-button {
+            max-width: 260px;
+            padding: 14px 18px;
+            background: #111827;
+            color: #fff;
+        }
+
+        .action-button {
+            margin-top: 18px;
+            padding: 16px 20px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 16px 28px rgba(229, 50, 45, 0.24);
+        }
+
+        .action-button:disabled {
+            cursor: wait;
+            opacity: 0.78;
+        }
+
+        .file-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .file-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: #f8fafc;
+        }
+
+        .file-item strong {
+            display: block;
+            overflow-wrap: anywhere;
+            font-size: 0.95rem;
+        }
+
+        .file-item span {
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .small-button {
+            min-width: 42px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 8px 10px;
+            background: #fff;
+            color: #344054;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .range-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field label {
+            font-weight: 700;
+            color: #344054;
+        }
+
+        .field input {
+            width: 100%;
+            border: 1px solid #d0d5dd;
+            border-radius: 14px;
+            padding: 13px 14px;
+            color: var(--ink);
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 14px;
+            font-weight: 700;
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        @media (max-width: 920px) {
+            .tools {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .page {
+                padding-inline: 16px;
+            }
+
+            .tool-card {
+                padding: 20px;
+            }
+
+            .range-grid,
+            .file-item {
+                grid-template-columns: 1fr;
+            }
+
+            .file-actions {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="topbar">
+            <a class="back-link" href="/">Voltar para as ferramentas</a>
+        </div>
+
+        <section class="intro">
+            <span class="badge">{{ operation.title }}</span>
+            <h1>{{ operation.title }}</h1>
+            <p>{{ operation.description }}</p>
+        </section>
+
+        <section class="tools">
+            <div class="tool-card">
+                <h2>Unir PDFs</h2>
+                <p>O arquivo final segue a ordem exibida abaixo.</p>
+
+                <form id="merge-form">
+                    <label class="dropzone" id="merge-dropzone" for="merge-files">
+                        <strong>Selecionar PDFs</strong>
+                        <span>Arraste dois ou mais arquivos aqui.</span>
+                        <button class="upload-button" type="button">Escolher arquivos</button>
+                        <input id="merge-files" name="files" type="file" accept=".pdf" multiple required>
+                    </label>
+
+                    <ul id="merge-file-list" class="file-list"></ul>
+                    <button id="merge-submit" class="action-button" type="submit">Unir PDFs</button>
+                    <div id="merge-status" class="status" aria-live="polite"></div>
+                </form>
+            </div>
+
+            <div class="tool-card">
+                <h2>Separar paginas</h2>
+                <p>Informe o intervalo inclusivo de paginas que deve compor o novo PDF.</p>
+
+                <form id="split-form">
+                    <label class="dropzone" id="split-dropzone" for="split-file">
+                        <strong>{{ operation.button }}</strong>
+                        <span>Arraste um PDF aqui ou clique para procurar.</span>
+                        <button class="upload-button" type="button">Escolher arquivo</button>
+                        <input id="split-file" name="file" type="file" accept=".pdf" required>
+                    </label>
+
+                    <div id="split-file-name" class="status"></div>
+
+                    <div class="range-grid">
+                        <div class="field">
+                            <label for="start-page">Pagina inicial</label>
+                            <input id="start-page" name="start_page" type="number" min="1" step="1" inputmode="numeric" required>
+                        </div>
+                        <div class="field">
+                            <label for="end-page">Pagina final</label>
+                            <input id="end-page" name="end_page" type="number" min="1" step="1" inputmode="numeric" required>
+                        </div>
+                    </div>
+
+                    <button id="split-submit" class="action-button" type="submit">Separar paginas</button>
+                    <div id="split-status" class="status" aria-live="polite"></div>
+                </form>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const mergeForm = document.getElementById("merge-form");
+        const mergeInput = document.getElementById("merge-files");
+        const mergeDropzone = document.getElementById("merge-dropzone");
+        const mergeFileList = document.getElementById("merge-file-list");
+        const mergeStatus = document.getElementById("merge-status");
+        const mergeSubmit = document.getElementById("merge-submit");
+        const splitForm = document.getElementById("split-form");
+        const splitInput = document.getElementById("split-file");
+        const splitDropzone = document.getElementById("split-dropzone");
+        const splitFileName = document.getElementById("split-file-name");
+        const splitStatus = document.getElementById("split-status");
+        const splitSubmit = document.getElementById("split-submit");
+        const startPageInput = document.getElementById("start-page");
+        const endPageInput = document.getElementById("end-page");
+        let mergeFiles = [];
+
+        function formatSize(bytes) {
+            if (bytes < 1024 * 1024) {
+                return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+            }
+
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        function isPdf(file) {
+            return file.name.toLowerCase().endsWith(".pdf");
+        }
+
+        function setStatus(element, message, type = "") {
+            element.textContent = message;
+            element.className = type ? `status ${type}` : "status";
+        }
+
+        function renderMergeFiles() {
+            mergeFileList.innerHTML = "";
+
+            mergeFiles.forEach((file, index) => {
+                const item = document.createElement("li");
+                const details = document.createElement("div");
+                const name = document.createElement("strong");
+                const size = document.createElement("span");
+                const actions = document.createElement("div");
+
+                item.className = "file-item";
+                name.textContent = `${index + 1}. ${file.name}`;
+                size.textContent = formatSize(file.size);
+                actions.className = "file-actions";
+
+                ["Subir", "Descer", "Remover"].forEach((label) => {
+                    const button = document.createElement("button");
+                    button.className = "small-button";
+                    button.type = "button";
+                    button.dataset.action = label.toLowerCase();
+                    button.dataset.index = index;
+                    button.textContent = label;
+                    actions.appendChild(button);
+                });
+
+                details.appendChild(name);
+                details.appendChild(size);
+                item.appendChild(details);
+                item.appendChild(actions);
+                mergeFileList.appendChild(item);
+            });
+        }
+
+        function addMergeFiles(files) {
+            const nextFiles = Array.from(files).filter(isPdf);
+            mergeFiles = mergeFiles.concat(nextFiles);
+            renderMergeFiles();
+
+            if (nextFiles.length !== files.length) {
+                setStatus(mergeStatus, "Alguns arquivos foram ignorados porque nao sao PDFs.", "error");
+                return;
+            }
+
+            setStatus(mergeStatus, "");
+        }
+
+        function configureDropzone(dropzone, input, onFiles) {
+            ["dragenter", "dragover"].forEach((eventName) => {
+                dropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropzone.classList.add("is-dragging");
+                });
+            });
+
+            ["dragleave", "drop"].forEach((eventName) => {
+                dropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropzone.classList.remove("is-dragging");
+                });
+            });
+
+            dropzone.addEventListener("drop", (event) => {
+                onFiles(event.dataTransfer.files);
+            });
+
+            input.addEventListener("change", () => {
+                onFiles(input.files);
+            });
+        }
+
+        async function downloadResponse(response, fallbackName) {
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || "Nao foi possivel processar o PDF.");
+            }
+
+            const blob = await response.blob();
+            const disposition = response.headers.get("Content-Disposition") || "";
+            const match = disposition.match(/filename="?([^"]+)"?/i);
+            const fileName = match ? match[1] : fallbackName;
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = downloadUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(downloadUrl);
+        }
+
+        mergeFileList.addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-action]");
+            if (!button) {
+                return;
+            }
+
+            const index = Number(button.dataset.index);
+            const action = button.dataset.action;
+
+            if (action === "remove") {
+                mergeFiles.splice(index, 1);
+            }
+
+            if (action === "up" && index > 0) {
+                [mergeFiles[index - 1], mergeFiles[index]] = [mergeFiles[index], mergeFiles[index - 1]];
+            }
+
+            if (action === "down" && index < mergeFiles.length - 1) {
+                [mergeFiles[index + 1], mergeFiles[index]] = [mergeFiles[index], mergeFiles[index + 1]];
+            }
+
+            renderMergeFiles();
+        });
+
+        configureDropzone(mergeDropzone, mergeInput, addMergeFiles);
+        configureDropzone(splitDropzone, splitInput, (files) => {
+            const [file] = Array.from(files).filter(isPdf);
+
+            if (!file) {
+                splitFileName.textContent = "";
+                setStatus(splitStatus, "Selecione um arquivo PDF.", "error");
+                return;
+            }
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            splitInput.files = dataTransfer.files;
+            splitFileName.textContent = file ? `Arquivo selecionado: ${file.name}` : "";
+            setStatus(splitStatus, "");
+        });
+
+        mergeForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            if (mergeFiles.length < 2) {
+                setStatus(mergeStatus, "Selecione pelo menos dois arquivos PDF.", "error");
+                return;
+            }
+
+            setStatus(mergeStatus, "Unindo PDFs...");
+            mergeSubmit.disabled = true;
+
+            try {
+                const formData = new FormData();
+                mergeFiles.forEach((file) => formData.append("files", file));
+                const response = await fetch("/api/pdf/merge", {
+                    method: "POST",
+                    body: formData
+                });
+
+                await downloadResponse(response, "pdf-unificado.pdf");
+                setStatus(mergeStatus, "PDF unificado gerado. O download foi iniciado.", "success");
+            } catch (error) {
+                setStatus(mergeStatus, error.message, "error");
+            } finally {
+                mergeSubmit.disabled = false;
+            }
+        });
+
+        splitForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const startPage = Number(startPageInput.value);
+            const endPage = Number(endPageInput.value);
+
+            if (!Number.isInteger(startPage) || !Number.isInteger(endPage) || startPage < 1 || endPage < 1) {
+                setStatus(splitStatus, "Informe paginas validas maiores que zero.", "error");
+                return;
+            }
+
+            if (startPage > endPage) {
+                setStatus(splitStatus, "A pagina inicial deve ser menor ou igual a final.", "error");
+                return;
+            }
+
+            setStatus(splitStatus, "Separando paginas...");
+            splitSubmit.disabled = true;
+
+            try {
+                const formData = new FormData(splitForm);
+                const response = await fetch("/api/pdf/split", {
+                    method: "POST",
+                    body: formData
+                });
+
+                await downloadResponse(response, "pdf-separado.pdf");
+                setStatus(splitStatus, "PDF separado gerado. O download foi iniciado.", "success");
+            } catch (error) {
+                setStatus(splitStatus, error.message, "error");
+            } finally {
+                splitSubmit.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
