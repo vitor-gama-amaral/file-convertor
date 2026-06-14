@@ -52,6 +52,7 @@ elif ENV_PATH.exists():
 UPLOAD_OPERATION = "docx_to_pdf"
 SECURITY_OPERATION = "virus_scan"
 VAULT_OPERATION = "temporary_pdf_link"
+PDF_OPERATION = "pdf_tools"
 OPERATIONS = {
     UPLOAD_OPERATION: {
         "slug": "word-para-pdf",
@@ -90,6 +91,19 @@ OPERATIONS = {
         ),
         "template": "document_vault.html",
         "icon": "LINK",
+    },
+    PDF_OPERATION: {
+        "slug": "editar-pdf",
+        "title": "Editar PDF",
+        "subtitle": "Una varios PDFs ou separe um intervalo de paginas.",
+        "accept": ".pdf",
+        "button": "Selecionar PDF",
+        "description": (
+            "Combine documentos PDF em um unico arquivo ou extraia apenas as "
+            "paginas que voce precisa."
+        ),
+        "template": "pdf_tools.html",
+        "icon": "PDF",
     },
 }
 
